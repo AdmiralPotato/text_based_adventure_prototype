@@ -26,7 +26,7 @@ var help = function () {
 	output += listOptions(
 		Object.keys(verbs)
 	);
-	copyToBuffer(output);
+	return output;
 };
 
 var items = {
