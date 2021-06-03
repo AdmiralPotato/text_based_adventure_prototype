@@ -29,10 +29,24 @@ var help = function () {
 	copyToBuffer(output);
 };
 
-var duzzy = {
-	description: [
-		'He looks menacing.',
-	].join('\n'),
+var items = {
+	flask: {
+		description: [
+			'The flask looks like it can hold 1.2 litres',
+			'worth of fluids. Someone has laser-etched',
+			'a PipsCat on to it.',
+		].join('\n'),
+	},
+	duzzy: {
+		description: [
+			'He looks menacing, but definitely not a clone.',
+		].join('\n'),
+	},
+	goat: {
+		description: [
+			'The Goat looks very wise.',
+		].join('\n'),
+	},
 };
 
 var rooms = {
@@ -45,16 +59,10 @@ var rooms = {
 			'any intruders, but there is a power switch',
 			'next to it that has clearly been left off.',
 		].join('\n'),
-		objects: {
-			flask: {
-				description: [
-					'The flask looks like it can hold 1.2 litres',
-					'worth of fluids. Someone has laser-etched',
-					'a PipsCat on to it.',
-				].join('\n'),
-			},
-			duzzy
-		},
+		items: [
+			'flask',
+			'duzzy',
+		],
 		directions: {
 			north: 'main_hall_north',
 			south: 'goat_room',
@@ -67,9 +75,9 @@ var rooms = {
 			'Broken devices, empty Cactus Cooler cans, ',
 			'and smelly Smash Bros. players.',
 		].join('\n'),
-		objects: {
-			duzzy
-		},
+		items: [
+			'duzzy',
+		],
 		directions: {
 			south: 'start',
 		},
@@ -79,13 +87,9 @@ var rooms = {
 			'You are in the Goat Room.',
 			'There is a wise old Goat here.',
 		].join('\n'),
-		objects: {
-			goat: {
-				description: [
-					'The Goat looks very wise.',
-				].join('\n'),
-			}
-		},
+		items: [
+			'goat',
+		],
 		directions: {
 			north: 'start',
 		},
@@ -94,30 +98,47 @@ var rooms = {
 
 var currentRoom = rooms.start;
 
-var look = function (targetString) {
-	var target = currentRoom;
-	var output = '';
+var inventoryContents = [];
+
+var lookupItem = function (targetString) {
+	var target;
 	if (targetString) {
-		target = currentRoom.objects[targetString];
+		var isItemInInventory = inventoryContents.includes(targetString);
+		var isItemRoom = currentRoom.items.includes(targetString);
+		if (
+			isItemInInventory
+			|| isItemRoom
+		) {
+			target = items[targetString];
+		}
 	}
+	return target;
+};
+
+var look = function (targetString) {
+	var output = '';
+	var target = targetString
+		? lookupItem(targetString)
+		: currentRoom;
 	if (target) {
-		output += target.description;
-		if (target.objects) {
-			output += '\n\nIn this room, you see:\n';
-			output += listOptions(
-				Object.keys(target.objects)
-			);
+		output += target.description + '\n';
+		var itemsInRoom = (target.items || []).filter(function (item) {
+			return !inventoryContents.includes(item);
+		});
+		if (itemsInRoom.length) {
+			output += '\nIn this room, you see:\n';
+			output += listOptions(itemsInRoom);
 		}
 		if (target.directions) {
-			output += '\n\nExits are:\n';
+			output += '\nExits are:\n';
 			output += listOptions(
 				Object.keys(target.directions)
 			);
 		}
 	} else {
-		output += `You try to look at ${targetString},\nbut only the void stares back.`
+		output += `You try to look at "${targetString}",\nbut only the void stares back.`
 	}
-	copyToBuffer(output);
+	return output;
 };
 
 var go = function (targetString) {
@@ -128,22 +149,49 @@ var go = function (targetString) {
 		var newRoom = rooms[destinationRoomName];
 		if (newRoom) {
 			currentRoom = newRoom;
-			look();
+			output += look();
 		} else {
 			output += `You cannot go "${targetString}"`;
 		}
 	} else {
 		output += 'You cannot go nowhere';
 	}
-	copyToBuffer(output);
+	return output;
+};
+
+var inventory = function (targetString) {
+	var output = 'You look in your Laptop Bag of Holding.\nYou have:\n';
+	var options = inventoryContents.length
+		? inventoryContents
+		: ['nothing'];
+	output += listOptions(options);
+	return output;
+};
+
+var get = function (targetString) {
+	var output = '';
+	var target = lookupItem(targetString);
+	if (!targetString) {
+		output += 'You cannot get nothing';
+	} else if (target) {
+		if (inventoryContents.includes(targetString)) {
+			output += `"${targetString}" is already in your inventory`;
+		} else {
+			inventoryContents.push(targetString);
+			output += `"${targetString}" has been added to inventory`;
+		}
+	} else {
+		output += `You cannot get "${targetString}"`;
+	}
+	return output;
 };
 
 var verbs = {
 	look,
 	go,
-	get: null,
-	bag: null,
-	inventory: null,
+	get,
+	drop: null,
+	inventory,
 	use: null,
 	open: null,
 	hack: null,
@@ -152,19 +200,22 @@ var verbs = {
 	eat: null,
 	yeet: null,
 };
-verbs.look();
+
+copyToBuffer(look());
 
 var processCommand = function (commandString) {
 	var segments = commandString.split(' ');
 	var verbString = segments[0].toLocaleLowerCase();
 	var targetString = (segments[1] || '').toLocaleLowerCase();
 	var verb = verbs[verbString];
+	var output = '';
 	if (verb) {
-		copyToBuffer('> ' + commandString);
-		verb(targetString);
+		output += '> ' + commandString + '\n';
+		output += verb(targetString);
 	} else {
-		copyToBuffer(`INVALID COMMAND: ${verbString}`);
+		output += `INVALID COMMAND: ${commandString}`;
 	}
+	copyToBuffer(output);
 };
 
 inputForm.addEventListener('submit', function (event) {
