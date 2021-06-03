@@ -142,7 +142,10 @@ var look = function (targetString) {
 	if (target) {
 		output += target.description + '\n';
 		var itemsInRoom = roomInventories[currentRoomName];
-		if (itemsInRoom.length) {
+		if (
+			target.items
+			&& itemsInRoom.length
+		) {
 			output += '\nIn this room, you see:\n';
 			output += listOptions(itemsInRoom);
 		}
