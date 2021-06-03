@@ -96,15 +96,32 @@ var rooms = {
 	},
 };
 
-var currentRoom = rooms.start;
+var currentRoomName;
+var currentRoom;
+var inventoryContents;
+var roomInventories;
 
-var inventoryContents = [];
+var prepRoomInventories = function () {
+	Object.keys(rooms).forEach(function (roomName) {
+		roomInventories[roomName] = (rooms[roomName].items || []).slice();
+	});
+};
+
+var reset = function () {
+	var output = 'Game state reset';
+	currentRoomName = 'start';
+	currentRoom = rooms[currentRoomName];
+	inventoryContents = [];
+	roomInventories = {};
+	prepRoomInventories();
+	return output;
+};
 
 var lookupItem = function (targetString) {
 	var target;
 	if (targetString) {
 		var isItemInInventory = inventoryContents.includes(targetString);
-		var isItemRoom = currentRoom.items.includes(targetString);
+		var isItemRoom = roomInventories[currentRoomName].includes(targetString);
 		if (
 			isItemInInventory
 			|| isItemRoom
@@ -122,9 +139,7 @@ var look = function (targetString) {
 		: currentRoom;
 	if (target) {
 		output += target.description + '\n';
-		var itemsInRoom = (target.items || []).filter(function (item) {
-			return !inventoryContents.includes(item);
-		});
+		var itemsInRoom = roomInventories[currentRoomName];
 		if (itemsInRoom.length) {
 			output += '\nIn this room, you see:\n';
 			output += listOptions(itemsInRoom);
@@ -148,6 +163,7 @@ var go = function (targetString) {
 		var destinationRoomName = currentRoom.directions[targetString];
 		var newRoom = rooms[destinationRoomName];
 		if (newRoom) {
+			currentRoomName = destinationRoomName;
 			currentRoom = newRoom;
 			output += look();
 		} else {
@@ -177,6 +193,9 @@ var get = function (targetString) {
 		if (inventoryContents.includes(targetString)) {
 			output += `"${targetString}" is already in your inventory`;
 		} else {
+			var currentRoomInventory = roomInventories[currentRoomName];
+			var currentItemIndex = currentRoomInventory.indexOf(targetString);
+			currentRoomInventory.splice(currentItemIndex, 1);
 			inventoryContents.push(targetString);
 			output += `"${targetString}" has been added to inventory`;
 		}
@@ -186,21 +205,39 @@ var get = function (targetString) {
 	return output;
 };
 
+var drop = function (targetString) {
+	var output = '';
+	var inventoryIndex = inventoryContents.indexOf(targetString);
+	if (!targetString) {
+		output += 'You open your hands, and nothing falls to the ground';
+	} else if (inventoryIndex === -1) {
+		output += `You cannot drop "${targetString}"`;
+	} else {
+		var currentRoomInventory = roomInventories[currentRoomName];
+		var currentItemIndex = currentRoomInventory.indexOf(targetString);
+		inventoryContents.splice(inventoryIndex, 1);
+		currentRoomInventory.push(targetString);
+		output += `You have dropped "${targetString}" in the current room`;
+	}
+	return output;
+};
+
 var verbs = {
 	look,
 	go,
 	get,
-	drop: null,
+	drop,
 	inventory,
 	use: null,
 	open: null,
 	hack: null,
-	take: null,
 	help,
 	eat: null,
 	yeet: null,
+	reset,
 };
 
+reset();
 copyToBuffer(look());
 
 var processCommand = function (commandString) {
