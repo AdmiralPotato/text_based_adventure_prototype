@@ -24,7 +24,9 @@ var listOptions = function (options) {
 var help = function () {
 	var output = 'You can use the following commands:\n';
 	output += listOptions(
-		Object.keys(verbs)
+		Object.keys(verbs).filter(function (verb) {
+			return verbs[verb];
+		})
 	);
 	return output;
 };
