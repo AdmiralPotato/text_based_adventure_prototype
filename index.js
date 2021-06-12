@@ -38,15 +38,33 @@ var items = {
 			'worth of fluids. Someone has laser-etched',
 			'a PipsCat on to it.',
 		].join('\n'),
+		use: [
+			'What are you, some kinda drunk?',
+		].join('\n'),
 	},
 	duzzy: {
 		description: [
 			'He looks menacing, but definitely not a clone.',
 		].join('\n'),
+		use: [
+			'He gives only bad advice.',
+		].join('\n'),
 	},
 	goat: {
 		description: [
 			'The Goat looks very wise.',
+		].join('\n'),
+		use: [
+			'He gives only good advice.',
+		].join('\n'),
+	},
+	staff: {
+		description: [
+			'This staff has a heart, some wings, a bird beak,',
+			'a moon, several different colors of gemstones,',
+			'some alchemical transmutation circles, and the',
+			'whole thing is covered in glitter.',
+			'Somebody is compensating.',
 		].join('\n'),
 	},
 };
@@ -56,7 +74,7 @@ var rooms = {
 		description: [
 			'You have entered the Dungeon.',
 			'',
-			'It looks like there was some sophistocated',
+			'It looks like there was some sophisticated',
 			'security system that should have kept out',
 			'any intruders, but there is a power switch',
 			'next to it that has clearly been left off.',
@@ -67,7 +85,9 @@ var rooms = {
 		],
 		directions: {
 			north: 'main_hall_north',
+			east: 'torii_gate',
 			south: 'goat_room',
+			west: 'west_room',
 		},
 	},
 	main_hall_north: {
@@ -94,6 +114,41 @@ var rooms = {
 		],
 		directions: {
 			north: 'start',
+		},
+	},
+	west_room: {
+		description: [
+			'You are in the West Room.',
+			'There are some Village People here.',
+			'They seem to be dancing.',
+			'Disco is still alive here.',
+		].join('\n'),
+		directions: {
+			east: 'start',
+		},
+	},
+	torii_gate: {
+		description: [
+			'You are at the Torii Gate.',
+			'If you go through this gate, you will',
+			'be transformed into a magical girl.',
+		].join('\n'),
+		directions: {
+			west: 'start',
+			gate: 'magical_girl',
+		},
+	},
+	magical_girl: {
+		description: [
+			'You have transformed into a Magical Girl.',
+			'',
+			'Hooray.',
+		].join('\n'),
+		items: [
+			'staff',
+		],
+		directions: {
+			back: 'torii_gate',
 		},
 	},
 };
@@ -227,13 +282,26 @@ var drop = function (targetString) {
 	return output;
 };
 
+var use = function (targetString) {
+	var output = '';
+	var target = lookupItem(targetString);
+	if (!targetString) {
+		output += 'You cannot use nothing.';
+	} else if (!target) {
+		output += `There is no "${targetString}" here.`;
+	} else {
+		output += target.use || 'Nothing happens.';
+	}
+	return output;
+};
+
 var verbs = {
 	look,
 	go,
 	get,
 	drop,
 	inventory,
-	use: null,
+	use,
 	open: null,
 	hack: null,
 	help,
